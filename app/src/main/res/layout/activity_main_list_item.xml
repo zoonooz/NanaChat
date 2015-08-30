@@ -37,7 +37,8 @@
             android:id="@+id/message_textview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:textColor="@android:color/holo_blue_dark"
+            android:layout_marginTop="5dp"
             tools:text="Message"/>
 
     </LinearLayout>

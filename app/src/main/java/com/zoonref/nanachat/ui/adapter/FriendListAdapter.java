@@ -11,9 +11,14 @@ import android.widget.TextView;
 import com.squareup.picasso.Picasso;
 import com.zoonref.nanachat.R;
 import com.zoonref.nanachat.model.Friend;
+import com.zoonref.nanachat.model.Message;
+
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import io.realm.Realm;
 import io.realm.RealmBaseAdapter;
 import io.realm.RealmResults;
 
@@ -22,9 +27,13 @@ import io.realm.RealmResults;
  */
 public class FriendListAdapter extends RealmBaseAdapter<Friend> implements ListAdapter {
 
+    private SimpleDateFormat mDateFormat;
+
     static class ViewHolder {
         @Bind(R.id.imageview) ImageView imageView;
         @Bind(R.id.name_textview) TextView nameTextView;
+        @Bind(R.id.time_textview) TextView timeTextView;
+        @Bind(R.id.message_textview) TextView messageTextView;
 
         public ViewHolder(View view) {
             ButterKnife.bind(this, view);
@@ -33,8 +42,9 @@ public class FriendListAdapter extends RealmBaseAdapter<Friend> implements ListA
 
     public FriendListAdapter(Context context, RealmResults<Friend> realmResults, boolean automaticUpdate) {
         super(context, realmResults, automaticUpdate);
-    }
 
+        mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+    }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
@@ -54,6 +64,17 @@ public class FriendListAdapter extends RealmBaseAdapter<Friend> implements ListA
 
         if (!TextUtils.isEmpty(item.getAvatar())) {
             Picasso.with(context).load(item.getAvatar()).into(viewHolder.imageView);
+        }
+
+        // get last message
+        RealmResults<Message> messages = Realm.getInstance(context).where(Message.class)
+                .equalTo("friend.id", item.getId())
+                .findAllSorted("timestamp", true);
+
+        Message lastMessage = messages.size() > 0 ? messages.last() : null;
+        if (lastMessage != null) {
+            viewHolder.messageTextView.setText(lastMessage.getMessage());
+            viewHolder.timeTextView.setText(mDateFormat.format(lastMessage.getTimestamp()));
         }
 
         return convertView;

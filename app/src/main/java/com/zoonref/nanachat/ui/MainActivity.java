@@ -1,13 +1,12 @@
 package com.zoonref.nanachat.ui;
 
-import android.content.Intent;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.jakewharton.rxbinding.support.v4.widget.RxSwipeRefreshLayout;
+import com.jakewharton.rxbinding.widget.RxAdapterView;
 import com.zoonref.nanachat.R;
 import com.zoonref.nanachat.api.NanaChat;
 import com.zoonref.nanachat.model.Friend;
@@ -20,7 +19,7 @@ import butterknife.ButterKnife;
 import io.realm.Realm;
 import rx.android.schedulers.AndroidSchedulers;
 
-public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
+public class MainActivity extends AppCompatActivity {
 
     @Bind(R.id.refresh_layout) SwipeRefreshLayout mRefreshLayout;
     @Bind(R.id.listview) ListView mListView;
@@ -38,16 +37,34 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mRealm = Realm.getInstance(this);
         mAdapter = new FriendListAdapter(this, mRealm.where(Friend.class).findAll(), true);
         mListView.setAdapter(mAdapter);
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                Friend friend = mAdapter.getItem(i);
-                openChat(friend);
-            }
+
+        // when item is clicked, open chat
+        RxAdapterView.itemClicks(mListView).subscribe(i -> {
+            Friend friend = mAdapter.getItem(i);
+            startActivity(ChatActivity.createIntent(this, friend));
         });
 
-        mRefreshLayout.setRefreshing(true);
-        mRefreshLayout.setOnRefreshListener(this);
+        // when refreshing
+        RxSwipeRefreshLayout.refreshes(mRefreshLayout)
+                .flatMap(v -> NanaChat.getInstance(this).getApi().listFriends())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnError(error -> mRefreshLayout.setRefreshing(false))
+                .subscribe(friends -> {
+                    saveFriends(friends);
+                    mRefreshLayout.setRefreshing(false);
+                });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // re-load from server when resume
+        NanaChat.getInstance(this).getApi().listFriends()
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnCompleted(() -> mRefreshLayout.setRefreshing(false))
+                .doOnError(error -> mRefreshLayout.setRefreshing(false))
+                .subscribe(this::saveFriends);
     }
 
     @Override
@@ -56,25 +73,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mRealm.close();
     }
 
-    @Override
-    public void onRefresh() {
-        // flow for get list of friends
-        NanaChat.getInstance(this).getApi().listFriends()
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnCompleted(() -> mRefreshLayout.setRefreshing(false))
-                .doOnError(error -> mRefreshLayout.setRefreshing(false))
-                .subscribe(this::saveFriends);
-    }
-
     // private
 
     private void saveFriends(List<Friend> friends) {
         mRealm.beginTransaction();
         mRealm.copyToRealmOrUpdate(friends);
         mRealm.commitTransaction();
-    }
-
-    private void openChat(Friend friend) {
-        startActivity(ChatActivity.createIntent(this, friend));
     }
 }
