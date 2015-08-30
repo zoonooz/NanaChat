@@ -1,11 +1,16 @@
 # NanaChat
 
-Simple Chat application for testing
+Simple Chat application for testing. I think this is a good chance for me to try and learn Reactive Programming.
 
-### Notes
+### Libraries Notes
 
-* Using FRP style coding
-* Using Realm for persistent layer
+* [RxAndroid](https://github.com/ReactiveX/RxAndroid) for creating app with Functional Reactive Programming
+* [Realm](https://realm.io/docs/java/latest/) for persistent layer
+* [Retrofit](http://square.github.io/retrofit/) for networking layer
+* [ButterKnife](http://jakewharton.github.io/butterknife/) for views binding
+* [Picasso](http://square.github.io/picasso/) for image loading
+
+and use [RetroLambda](https://github.com/evant/gradle-retrolambda) to make project support lambda
 
 ### API
 
