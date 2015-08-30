@@ -1,8 +1,11 @@
 package com.zoonref.nanachat.ui;
 
+import android.content.Intent;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.zoonref.nanachat.R;
@@ -31,13 +34,20 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
 
-        mRefreshLayout.setOnRefreshListener(this);
-
+        // setup
         mRealm = Realm.getInstance(this);
         mAdapter = new FriendListAdapter(this, mRealm.where(Friend.class).findAll(), true);
         mListView.setAdapter(mAdapter);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                Friend friend = mAdapter.getItem(i);
+                openChat(friend);
+            }
+        });
 
         mRefreshLayout.setRefreshing(true);
+        mRefreshLayout.setOnRefreshListener(this);
     }
 
     @Override
@@ -56,9 +66,15 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 .subscribe(this::saveFriends);
     }
 
+    // private
+
     private void saveFriends(List<Friend> friends) {
         mRealm.beginTransaction();
         mRealm.copyToRealmOrUpdate(friends);
         mRealm.commitTransaction();
+    }
+
+    private void openChat(Friend friend) {
+        startActivity(ChatActivity.createIntent(this, friend));
     }
 }
